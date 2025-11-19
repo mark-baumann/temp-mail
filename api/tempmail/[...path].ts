@@ -16,6 +16,8 @@ export default async function handler(req: Request) {
   const pathAfter = url.pathname.startsWith(prefix + '/') ? url.pathname.slice((prefix + '/').length) : url.pathname.slice(prefix.length);
   const afterBase = pathAfter.replace(/^\//, '');
   const targetUrl = `https://api.tempmail.lol/${afterBase}${url.search}`;
+  const rid = Math.random().toString(36).slice(2, 8);
+  console.log(`[tempmail][${rid}] incoming`, { method: req.method, path: url.pathname, search: url.search, targetUrl });
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
@@ -37,10 +39,12 @@ export default async function handler(req: Request) {
     };
 
     const resp = await fetch(targetUrl, init);
+    console.log(`[tempmail][${rid}] response`, { status: resp.status, ok: resp.ok });
     const headers = new Headers(resp.headers);
     for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
     return new Response(resp.body, { status: resp.status, headers });
   } catch (err: any) {
+    console.error(`[tempmail][${rid}] error`, err?.message || err);
     const headers = new Headers(corsHeaders(origin));
     headers.set('content-type', 'application/json');
     return new Response(JSON.stringify({ error: 'Bad Gateway', message: err?.message || 'Proxy request failed' }), { status: 502, headers });

@@ -14,6 +14,8 @@ export default async function handler(req: Request) {
   const origin = req.headers.get('origin') || undefined;
   const afterBase = url.pathname.split('/api/mailtm/')[1] || '';
   const targetUrl = `https://api.mail.tm/${afterBase}`.replace(/\/+$/,'');
+  const rid = Math.random().toString(36).slice(2, 8);
+  console.log(`[mailtm][${rid}] incoming`, { method: req.method, path: url.pathname, search: url.search, targetUrl });
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
@@ -35,10 +37,12 @@ export default async function handler(req: Request) {
     };
 
     const resp = await fetch(targetUrl, init);
+    console.log(`[mailtm][${rid}] response`, { status: resp.status, ok: resp.ok });
     const headers = new Headers(resp.headers);
     for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
     return new Response(resp.body, { status: resp.status, headers });
   } catch (err: any) {
+    console.error(`[mailtm][${rid}] error`, err?.message || err);
     const headers = new Headers(corsHeaders(origin));
     headers.set('content-type', 'application/json');
     return new Response(JSON.stringify({ error: 'Bad Gateway', message: err?.message || 'Proxy request failed' }), { status: 502, headers });
