@@ -38,9 +38,6 @@ import {
   createDropMailAddress,
   getDropMailMessages,
   fetchDropMailMessage,
-  createMailTmAddress,
-  getMailTmMessages,
-  fetchMailTmMessage,
 } from '../api';
 import './Home.css';
 
@@ -124,8 +121,6 @@ const Home: React.FC = () => {
         result = await createTempMailLolAddress();
       } else if (provider === 'dropmail') {
         result = await createDropMailAddress();
-      } else if (provider === 'mailtm') {
-        result = await createMailTmAddress();
       } else {
         throw new Error('Unbekannter Anbieter');
       }
@@ -140,8 +135,6 @@ const Home: React.FC = () => {
         expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
       } else if (provider === 'dropmail' && result.expiresAt) {
         expiresAt = result.expiresAt;
-      } else if (provider === 'mailtm') {
-        expiresAt = null;
       }
       setEmailExpiresAt(expiresAt);
       await fetchMessages(result.token || '');
@@ -167,8 +160,6 @@ const Home: React.FC = () => {
         list = await getTempMailLolMessages(activeToken);
       } else if (selectedProvider === 'dropmail') {
         list = await getDropMailMessages(activeToken);
-      } else if (selectedProvider === 'mailtm') {
-        list = await getMailTmMessages(activeToken);
       }
       
       setMessages(list.sort((a, b) => b.receive_time - a.receive_time));
@@ -191,7 +182,8 @@ const Home: React.FC = () => {
       } else if (selectedProvider === 'dropmail') {
         message = await fetchDropMailMessage(token, messageId);
       } else {
-        message = await fetchMailTmMessage(token, messageId);
+        // no other providers
+        message = selectedMessage!;
       }
       setSelectedMessage(message);
     } catch (error) {
@@ -372,7 +364,9 @@ const Home: React.FC = () => {
           <IonHeader>
             <IonToolbar>
               <IonButtons slot="start">
-                <IonBackButton defaultHref="/" />
+                <IonButton onClick={() => setShowSettings(false)}>
+                  <IonIcon icon={chevronBack} />
+                </IonButton>
               </IonButtons>
               <IonTitle>Einstellungen</IonTitle>
             </IonToolbar>
@@ -382,18 +376,23 @@ const Home: React.FC = () => {
               <IonLabel position="stacked">E-Mail Anbieter</IonLabel>
               <IonSelect 
                 value={selectedProvider} 
-                onIonChange={(e) => setSelectedProvider(e.detail.value)}
+                onIonChange={async (e) => {
+                  const newProvider = e.detail.value;
+                  setSelectedProvider(newProvider);
+                  setCookie('emailProvider', newProvider);
+                  // reset previous state to avoid showing stale address/messages
+                  setEmailAddress('');
+                  setToken('');
+                  setMessages([]);
+                  setShowSettings(false);
+                  await generateEmail(newProvider);
+                }}
               >
                 <IonSelectOption value="guerrilla">Guerrilla Mail</IonSelectOption>
                 <IonSelectOption value="tempmail-lol">TempMail.lol</IonSelectOption>
                 <IonSelectOption value="dropmail">DropMail</IonSelectOption>
-                <IonSelectOption value="mailtm">Mail.tm</IonSelectOption>
               </IonSelect>
             </IonItem>
-            
-            <IonButton expand="block" onClick={saveSettings} className="ion-margin-top">
-              Speichern
-            </IonButton>
           </IonContent>
         </IonModal>
 

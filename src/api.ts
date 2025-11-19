@@ -20,7 +20,6 @@ const SERVICES = {
 const GUERRILLA_API_URL = import.meta.env.DEV ? '/guerrilla/ajax.php' : '/api/guerrilla/ajax.php';
 const TEMPMAIL_LOL_API_URL = import.meta.env.DEV ? '/tempmail' : '/api/tempmail';
 const DROPMAIL_API_URL = import.meta.env.DEV ? '/dropmail/api/graphql' : '/api/dropmail/api/graphql';
-const MAILTM_API_URL = import.meta.env.DEV ? '/mailtm' : '/api/mailtm';
 
 // Cache for TempMail.lol messages
 const tempMailLolCache: { [key: string]: any[] } = {};
@@ -209,103 +208,6 @@ export async function fetchDropMailMessage(token: string, messageId: string): Pr
   }
 }
 
-// ===========================
-// Mail.tm API implementation
-// ===========================
-async function getMailTmDomains(): Promise<string[]> {
-  // Some Mail.tm deployments expect pagination param; request first page explicitly
-  let response = await fetch(`${MAILTM_API_URL}/domains?page=1`);
-  if (!response.ok) {
-    // Fallback without pagination if page param causes issues
-    response = await fetch(`${MAILTM_API_URL}/domains`);
-    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-  }
-  const data = await response.json();
-  return (data['hydra:member'] || []).map((d: any) => d.domain);
-}
-
-export async function createMailTmAddress(domain: string | null = null): Promise<{ email: string; token: string }> {
-  if (!domain) {
-    const domains = await getMailTmDomains();
-    if (!domains || domains.length === 0) throw new Error('No domains available');
-    domain = domains[Math.floor(Math.random() * domains.length)];
-  }
-  const local = generateRandomString(10).toLowerCase();
-  const email = `${local}@${domain}`.toLowerCase();
-  const password = generateRandomString(12);
-  const payload = { address: email, password };
-  const createResponse = await fetch(`${MAILTM_API_URL}/accounts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!createResponse.ok) {
-    let msg = `HTTP error: ${createResponse.status}`;
-    try { const j = await createResponse.json(); if (j?.message) msg += ` - ${j.message}`; } catch {}
-    throw new Error(msg);
-  }
-  // slight delay before token to avoid race conditions on new accounts
-  await new Promise(r => setTimeout(r, 300));
-  const tokenResponse = await fetch(`${MAILTM_API_URL}/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!tokenResponse.ok) {
-    let msg = `HTTP error: ${tokenResponse.status}`;
-    try { const j = await tokenResponse.json(); if (j?.message) msg += ` - ${j.message}`; } catch {}
-    throw new Error(msg);
-  }
-  const tokenData = await tokenResponse.json();
-  return { email, token: tokenData.token };
-}
-
-export async function getMailTmMessages(token: string): Promise<any[]> {
-  const response = await fetch(`${MAILTM_API_URL}/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
-  if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-  const data = await response.json();
-  const messages = data['hydra:member'] || [];
-  return messages.map((msg: any) => ({
-    mail_id: msg.id,
-    subject: msg.subject || 'No Subject',
-    mail_from: msg.from?.address || 'Unknown',
-    mail_date: msg.createdAt || '',
-    receive_time: Date.now()
-  }));
-}
-
-export async function fetchMailTmMessage(token: string, messageId: string): Promise<any> {
-  try {
-    const response = await fetch(`${MAILTM_API_URL}/messages/${messageId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-    const msg = await response.json();
-    let htmlContent: any = msg.html || '';
-    let textContent: any = msg.text || '';
-    if (!htmlContent && !textContent && msg.intro) textContent = msg.intro;
-    if (Array.isArray(htmlContent)) htmlContent = htmlContent.join('\n');
-    if (Array.isArray(textContent)) textContent = textContent.join('\n');
-    const finalContent = htmlContent || textContent;
-    const messageSize = new TextEncoder().encode(finalContent).length;
-    return {
-      mail_body: finalContent,
-      mail_from: msg.from?.address || 'Unknown',
-      subject: msg.subject || 'No Subject',
-      mail_date: msg.createdAt || new Date().toISOString(),
-      mail_size: messageSize,
-      receive_time: Date.now()
-    };
-  } catch (error: any) {
-    console.error('Mail.tm API fetch_message error:', error);
-    return {
-      mail_body: `Error loading message: ${error.message}`,
-      mail_from: 'Unknown',
-      subject: 'Error retrieving message',
-      mail_date: new Date().toISOString(),
-      mail_size: 0,
-      receive_time: Date.now()
-    };
-  }
-}
 
 // ===========================
 // Utils
