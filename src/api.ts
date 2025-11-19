@@ -213,8 +213,13 @@ export async function fetchDropMailMessage(token: string, messageId: string): Pr
 // Mail.tm API implementation
 // ===========================
 async function getMailTmDomains(): Promise<string[]> {
-  const response = await fetch(`${MAILTM_API_URL}/domains`);
-  if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+  // Some Mail.tm deployments expect pagination param; request first page explicitly
+  let response = await fetch(`${MAILTM_API_URL}/domains?page=1`);
+  if (!response.ok) {
+    // Fallback without pagination if page param causes issues
+    response = await fetch(`${MAILTM_API_URL}/domains`);
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+  }
   const data = await response.json();
   return (data['hydra:member'] || []).map((d: any) => d.domain);
 }
