@@ -57,6 +57,7 @@ interface EmailMessage {
 const Home: React.FC = () => {
   const [emailAddress, setEmailAddress] = useState<string>('');
   const [token, setToken] = useState<string>('');
+  const [emailExpiresAt, setEmailExpiresAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<EmailMessage[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<EmailMessage | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -115,7 +116,7 @@ const Home: React.FC = () => {
   const generateEmail = async (providerOverride?: string) => {
     setIsLoading(true);
     try {
-      let result: { email: string; token?: string };
+      let result: { email: string; token?: string; expiresAt?: string };
       const provider = providerOverride || selectedProvider;
       if (provider === 'guerrilla') {
         result = await createGuerillaMailAddress();
@@ -131,6 +132,18 @@ const Home: React.FC = () => {
 
       setEmailAddress(result.email);
       setToken(result.token || '');
+      // compute expiry
+      let expiresAt: string | null = null;
+      if (provider === 'guerrilla') {
+        expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+      } else if (provider === 'tempmail-lol') {
+        expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+      } else if (provider === 'dropmail' && result.expiresAt) {
+        expiresAt = result.expiresAt;
+      } else if (provider === 'mailtm') {
+        expiresAt = null;
+      }
+      setEmailExpiresAt(expiresAt);
       await fetchMessages(result.token || '');
     } catch (error) {
       console.error('Error generating email:', error);
@@ -253,6 +266,17 @@ const Home: React.FC = () => {
                   <IonText color="primary">
                     <h2>{emailAddress}</h2>
                   </IonText>
+                  {emailExpiresAt !== null ? (
+                    <IonText color="medium">
+                      <p>
+                        Läuft ab: {new Date(emailExpiresAt).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      </p>
+                    </IonText>
+                  ) : (
+                    <IonText color="medium">
+                      <p>Ablauf: unbekannt</p>
+                    </IonText>
+                  )}
                   <IonButton size="small" onClick={copyEmail} className="ion-margin-top" fill="outline">
                     <IonIcon icon={copy} slot="start" />
                     Kopieren

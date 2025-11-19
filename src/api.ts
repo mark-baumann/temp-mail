@@ -17,10 +17,10 @@ const SERVICES = {
 };
 
 // API URLs (use Vite proxy in dev to avoid CORS)
-const GUERRILLA_API_URL = import.meta.env.DEV ? '/guerrilla/ajax.php' : 'https://api.guerrillamail.com/ajax.php';
-const TEMPMAIL_LOL_API_URL = import.meta.env.DEV ? '/tempmail' : 'https://api.tempmail.lol';
-const DROPMAIL_API_URL = import.meta.env.DEV ? '/dropmail/api/graphql' : 'https://dropmail.me/api/graphql';
-const MAILTM_API_URL = import.meta.env.DEV ? '/mailtm' : 'https://api.mail.tm';
+const GUERRILLA_API_URL = import.meta.env.DEV ? '/guerrilla/ajax.php' : '/api/guerrilla/ajax.php';
+const TEMPMAIL_LOL_API_URL = import.meta.env.DEV ? '/tempmail' : '/api/tempmail';
+const DROPMAIL_API_URL = import.meta.env.DEV ? '/dropmail/api/graphql' : '/api/dropmail/api/graphql';
+const MAILTM_API_URL = import.meta.env.DEV ? '/mailtm' : '/api/mailtm';
 
 // Cache for TempMail.lol messages
 const tempMailLolCache: { [key: string]: any[] } = {};
@@ -83,7 +83,7 @@ export async function createGuerillaMailAddress(domain: string | null = null): P
 // ===========================
 // DropMail.me API implementation
 // ===========================
-export async function createDropMailAddress(domain: string | null = null): Promise<{ email: string; token: string }> {
+export async function createDropMailAddress(domain: string | null = null): Promise<{ email: string; token: string; expiresAt?: string }> {
   const apiToken = generateRandomString(12);
   const query = `
       mutation {
@@ -104,7 +104,7 @@ export async function createDropMailAddress(domain: string | null = null): Promi
   const sess = data.data.introduceSession;
   const sessionId = sess.id;
   const address = sess.addresses[0].address;
-  return { email: address, token: `${apiToken}|${sessionId}` };
+  return { email: address, token: `${apiToken}|${sessionId}`, expiresAt: sess.expiresAt };
 }
 
 export async function getDropMailMessages(token: string): Promise<any[]> {
