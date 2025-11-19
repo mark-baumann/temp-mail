@@ -45,6 +45,13 @@ export default async function handler(req: Request) {
       resp = await fetch(altUrl, init);
       console.log(`[mailtm][${rid}] retry response`, { status: resp.status, ok: resp.ok });
     }
+    // If domains endpoint still errors, normalize to empty list to avoid client errors
+    if (req.method === 'GET' && afterBase.startsWith('domains') && (resp.status === 404 || resp.status === 500)) {
+      const headers = new Headers({ 'content-type': 'application/json' });
+      for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
+      const empty = { 'hydra:member': [] };
+      return new Response(JSON.stringify(empty), { status: 200, headers });
+    }
     const headers = new Headers(resp.headers);
     for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
     return new Response(resp.body, { status: resp.status, headers });
