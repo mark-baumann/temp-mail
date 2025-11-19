@@ -13,7 +13,7 @@ export default async function handler(req: Request) {
   const url = new URL(req.url);
   const origin = req.headers.get('origin') || undefined;
   const afterBase = url.pathname.split('/api/mailtm/')[1] || '';
-  const targetUrl = `https://api.mail.tm/${afterBase}`.replace(/\/+$/,'');
+  let targetUrl = `https://api.mail.tm/${afterBase}${url.search}`;
   const rid = Math.random().toString(36).slice(2, 8);
   console.log(`[mailtm][${rid}] incoming`, { method: req.method, path: url.pathname, search: url.search, targetUrl });
 
@@ -28,6 +28,7 @@ export default async function handler(req: Request) {
     if (ct) passHeaders.set('content-type', ct);
     if (auth) passHeaders.set('authorization', auth);
     passHeaders.set('accept', 'application/json, text/plain, */*');
+    passHeaders.set('user-agent', 'temp-mail-app/1.0');
 
     const init: RequestInit = {
       method: req.method,
@@ -36,8 +37,15 @@ export default async function handler(req: Request) {
       redirect: 'follow',
     };
 
-    const resp = await fetch(targetUrl, init);
+    let resp = await fetch(targetUrl, init);
     console.log(`[mailtm][${rid}] response`, { status: resp.status, ok: resp.ok });
+    // Retry once toggling trailing slash if 404/500 (some gateways are picky)
+    if ((resp.status === 404 || resp.status === 500) && !afterBase.endsWith('/')) {
+      const altUrl = `https://api.mail.tm/${afterBase}/${url.search}`.replace(/\?$/,'');
+      console.log(`[mailtm][${rid}] retry`, { altUrl });
+      resp = await fetch(altUrl, init);
+      console.log(`[mailtm][${rid}] retry response`, { status: resp.status, ok: resp.ok });
+    }
     const headers = new Headers(resp.headers);
     for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
     return new Response(resp.body, { status: resp.status, headers });
