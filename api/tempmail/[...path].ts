@@ -40,6 +40,12 @@ export default async function handler(req: Request) {
 
     const resp = await fetch(targetUrl, init);
     console.log(`[tempmail][${rid}] response`, { status: resp.status, ok: resp.ok });
+    // If calling auth/<token> and upstream returns 404, normalize to 200 with empty inbox
+    if (req.method === 'GET' && afterBase.startsWith('auth/') && resp.status === 404) {
+      const headers = new Headers({ 'content-type': 'application/json' });
+      for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
+      return new Response(JSON.stringify({ email: [] }), { status: 200, headers });
+    }
     const headers = new Headers(resp.headers);
     for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
     return new Response(resp.body, { status: resp.status, headers });
