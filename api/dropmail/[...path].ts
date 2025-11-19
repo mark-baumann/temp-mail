@@ -1,4 +1,5 @@
 export const config = { runtime: 'edge' };
+export const runtime = 'edge';
 
 function corsHeaders(origin?: string) {
   return {
@@ -15,7 +16,7 @@ export default async function handler(req: Request) {
   const prefix = '/api/dropmail';
   const pathAfter = url.pathname.startsWith(prefix + '/') ? url.pathname.slice((prefix + '/').length) : url.pathname.slice(prefix.length);
   const afterBase = pathAfter.replace(/^\//, '');
-  const targetUrl = `https://dropmail.me/${afterBase}${url.search}`.replace(/\/+\?/,'?').replace(/\/$/, '');
+  const targetUrl = `https://dropmail.me/${afterBase}${url.search}`;
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });

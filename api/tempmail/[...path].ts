@@ -15,7 +15,7 @@ export default async function handler(req: Request) {
   const prefix = '/api/tempmail';
   const pathAfter = url.pathname.startsWith(prefix + '/') ? url.pathname.slice((prefix + '/').length) : url.pathname.slice(prefix.length);
   const afterBase = pathAfter.replace(/^\//, '');
-  const targetUrl = `https://api.tempmail.lol/${afterBase}${url.search}`.replace(/\/+\?/,'?').replace(/\/$/, '');
+  const targetUrl = `https://api.tempmail.lol/${afterBase}${url.search}`;
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });

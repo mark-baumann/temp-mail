@@ -402,16 +402,17 @@ export async function fetchGuerillaMessage(token: string, messageId: string): Pr
 // TempMail.lol API implementation
 // ===========================
 export async function createTempMailLolAddress(domain: string | null = null): Promise<{ email: string; token: string }> {
-  // Use the /generate/rush endpoint (faster)
-  const url = `${TEMPMAIL_LOL_API_URL}/generate/rush`;
-  
-  const response = await fetch(url);
-  
+  // Prefer the /generate/rush endpoint (faster); fall back to /generate if needed
+  let data: any;
+  let response = await fetch(`${TEMPMAIL_LOL_API_URL}/generate/rush`);
   if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status}`);
+    // fallback
+    response = await fetch(`${TEMPMAIL_LOL_API_URL}/generate`);
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
   }
-  
-  const data = await response.json();
+  data = await response.json();
   
   // Initialize cache for this token
   const token = data.token;
