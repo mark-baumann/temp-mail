@@ -12,8 +12,10 @@ function corsHeaders(origin?: string) {
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   const origin = req.headers.get('origin') || undefined;
-  const afterBase = url.pathname.split('/api/guerrilla/')[1] || '';
-  const targetUrl = `https://api.guerrillamail.com/${afterBase}`.replace(/\/+$/,'');
+  const prefix = '/api/guerrilla';
+  const pathAfter = url.pathname.startsWith(prefix + '/') ? url.pathname.slice((prefix + '/').length) : url.pathname.slice(prefix.length);
+  const afterBase = pathAfter.replace(/^\//, '');
+  const targetUrl = `https://api.guerrillamail.com/${afterBase}${url.search}`.replace(/\/+\?/,'?').replace(/\/$/, '');
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
