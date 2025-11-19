@@ -8,10 +8,9 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "assets/icon/icon.png",
+      "src": "/apple-touch-icon.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "sizes": "180x180"
     }
   ],
   "start_url": "/",
