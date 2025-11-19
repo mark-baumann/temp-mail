@@ -429,6 +429,10 @@ export async function getTempMailLolMessages(token: string): Promise<any[]> {
   
   const response = await fetch(url);
   
+  // Some providers return 404 when no inbox/messages are available – treat as empty inbox
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
     throw new Error(`HTTP error: ${response.status}`);
   }
@@ -519,6 +523,16 @@ export async function fetchTempMailLolMessage(token: string, messageId: string):
     const url = `${TEMPMAIL_LOL_API_URL}/auth/${token}`;
     const response = await fetch(url);
     
+    if (response.status === 404) {
+      return {
+        mail_body: 'Keine Nachrichten vorhanden',
+        mail_from: 'Unknown',
+        subject: 'Nicht gefunden',
+        mail_date: new Date().toISOString(),
+        mail_size: 0,
+        receive_time: Date.now()
+      };
+    }
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
     }
