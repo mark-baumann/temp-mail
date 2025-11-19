@@ -27,8 +27,7 @@ export default async function handler(req: Request) {
     const auth = req.headers.get('authorization');
     if (ct) passHeaders.set('content-type', ct);
     if (auth) passHeaders.set('authorization', auth);
-    passHeaders.set('accept', 'application/json, text/plain, */*');
-    passHeaders.set('user-agent', 'temp-mail-app/1.0');
+    passHeaders.set('accept', 'application/ld+json, application/json;q=0.9, text/plain;q=0.8, */*;q=0.7');
 
     const init: RequestInit = {
       method: req.method,
