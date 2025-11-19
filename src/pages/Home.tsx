@@ -372,7 +372,7 @@ const Home: React.FC = () => {
           <IonHeader>
             <IonToolbar>
               <IonButtons slot="start">
-                <IonBackButton defaultHref="/home" />
+                <IonBackButton defaultHref="/" />
               </IonButtons>
               <IonTitle>Einstellungen</IonTitle>
             </IonToolbar>
