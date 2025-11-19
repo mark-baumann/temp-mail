@@ -137,7 +137,7 @@ const Home: React.FC = () => {
         expiresAt = result.expiresAt;
       }
       setEmailExpiresAt(expiresAt);
-      await fetchMessages(result.token || '');
+      await fetchMessages(result.token || '', provider);
     } catch (error) {
       console.error('Error generating email:', error);
       setToastMessage('Fehler beim Erzeugen der Adresse');
@@ -147,18 +147,19 @@ const Home: React.FC = () => {
     }
   };
 
-  const fetchMessages = async (overrideToken?: string) => {
+  const fetchMessages = async (overrideToken?: string, providerOverride?: string) => {
     const activeToken = overrideToken || token;
     if (!activeToken) return;
     
     setIsRefreshing(true);
     try {
       let list: EmailMessage[] = [];
-      if (selectedProvider === 'guerrilla') {
+      const providerToUse = providerOverride || selectedProvider;
+      if (providerToUse === 'guerrilla') {
         list = await getGuerillaMailMessages(activeToken);
-      } else if (selectedProvider === 'tempmail-lol') {
+      } else if (providerToUse === 'tempmail-lol') {
         list = await getTempMailLolMessages(activeToken);
-      } else if (selectedProvider === 'dropmail') {
+      } else if (providerToUse === 'dropmail') {
         list = await getDropMailMessages(activeToken);
       }
       
