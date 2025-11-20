@@ -290,20 +290,13 @@ const Home: React.FC = () => {
                     <h2>{emailAddress}</h2>
                   </IonText>
                   {emailExpiresAt !== null ? (
-                    <div>
-                      <IonText color="medium">
+                    timeRemaining && (
+                      <IonText color={timeRemaining === 'Abgelaufen' ? 'danger' : 'success'}>
                         <p>
-                          Läuft ab: {new Date(emailExpiresAt).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                          <strong>Verbleibend: {timeRemaining}</strong>
                         </p>
                       </IonText>
-                      {timeRemaining && (
-                        <IonText color={timeRemaining === 'Abgelaufen' ? 'danger' : 'success'}>
-                          <p>
-                            <strong>Verbleibend: {timeRemaining}</strong>
-                          </p>
-                        </IonText>
-                      )}
-                    </div>
+                    )
                   ) : (
                     <IonText color="medium">
                       <p>Ablauf: unbekannt</p>
