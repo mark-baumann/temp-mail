@@ -55,6 +55,7 @@ const Home: React.FC = () => {
   const [emailAddress, setEmailAddress] = useState<string>('');
   const [token, setToken] = useState<string>('');
   const [emailExpiresAt, setEmailExpiresAt] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [messages, setMessages] = useState<EmailMessage[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<EmailMessage | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -82,6 +83,35 @@ const Home: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [token]);
+
+  // Update countdown timer every second
+  useEffect(() => {
+    if (!emailExpiresAt) {
+      setTimeRemaining('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const expiresTime = new Date(emailExpiresAt).getTime();
+      const diff = expiresTime - now;
+
+      if (diff <= 0) {
+        setTimeRemaining('Abgelaufen');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [emailExpiresAt]);
 
   const getCookie = (name: string): string => {
     const value = `; ${document.cookie}`;
@@ -260,11 +290,20 @@ const Home: React.FC = () => {
                     <h2>{emailAddress}</h2>
                   </IonText>
                   {emailExpiresAt !== null ? (
-                    <IonText color="medium">
-                      <p>
-                        Läuft ab: {new Date(emailExpiresAt).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                      </p>
-                    </IonText>
+                    <div>
+                      <IonText color="medium">
+                        <p>
+                          Läuft ab: {new Date(emailExpiresAt).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                        </p>
+                      </IonText>
+                      {timeRemaining && (
+                        <IonText color={timeRemaining === 'Abgelaufen' ? 'danger' : 'success'}>
+                          <p>
+                            <strong>Verbleibend: {timeRemaining}</strong>
+                          </p>
+                        </IonText>
+                      )}
+                    </div>
                   ) : (
                     <IonText color="medium">
                       <p>Ablauf: unbekannt</p>

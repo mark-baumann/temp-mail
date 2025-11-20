@@ -27,7 +27,7 @@ const tempMailLolCache: { [key: string]: any[] } = {};
 // ===========================
 // Guerilla Mail API implementation
 // ===========================
-export async function createGuerillaMailAddress(domain: string | null = null): Promise<{ email: string; token: string }> {
+export async function createGuerillaMailAddress(domain: string | null = null): Promise<{ email: string; token: string; expiresAt?: string }> {
   if (!domain) {
     domain = SERVICES.guerrillamail.domains[0];
   }
@@ -55,9 +55,11 @@ export async function createGuerillaMailAddress(domain: string | null = null): P
     }
     
     const data = await response.json();
+    const expiresAt = new Date(Date.now() + SERVICES.guerrillamail.expirySeconds * 1000).toISOString();
     return {
       email: data.email_addr,
-      token: data.sid_token
+      token: data.sid_token,
+      expiresAt
     };
   } catch (error) {
     // Fallback if the first attempt fails
@@ -72,9 +74,11 @@ export async function createGuerillaMailAddress(domain: string | null = null): P
     }
     
     const fallbackData = await fallbackResponse.json();
+    const expiresAt = new Date(Date.now() + SERVICES.guerrillamail.expirySeconds * 1000).toISOString();
     return {
       email: fallbackData.email_addr,
-      token: fallbackData.sid_token
+      token: fallbackData.sid_token,
+      expiresAt
     };
   }
 }
@@ -308,7 +312,7 @@ export async function fetchGuerillaMessage(token: string, messageId: string): Pr
 // ===========================
 // TempMail.lol API implementation
 // ===========================
-export async function createTempMailLolAddress(domain: string | null = null): Promise<{ email: string; token: string }> {
+export async function createTempMailLolAddress(domain: string | null = null): Promise<{ email: string; token: string; expiresAt?: string }> {
   // Prefer the /generate/rush endpoint (faster); fall back to /generate if needed
   let data: any;
   let response = await fetch(`${TEMPMAIL_LOL_API_URL}/generate/rush`);
@@ -325,9 +329,11 @@ export async function createTempMailLolAddress(domain: string | null = null): Pr
   const token = data.token;
   tempMailLolCache[token] = [];
   
+  const expiresAt = new Date(Date.now() + SERVICES.tempmaillol.expirySeconds * 1000).toISOString();
   return {
     email: data.address,
-    token: token
+    token: token,
+    expiresAt
   };
 }
 
